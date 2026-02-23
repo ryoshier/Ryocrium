@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ryocrium</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #38bdf8;
+    }
+
+    .box {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #22c55e;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Ryocrium</h1>
+
+  <div class="box">
+    <h2>Paran: <span id="money">100000</span> ₺</h2>
+    <button onclick="earn()">Para Kazan (+5000)</button>
+  </div>
+
+  <script>
+    let money = 100000;
+
+    function earn() {
+      money += 5000;
+      document.getElementById("money").innerText = money;
+    }
+  </script>
+
+</body>
+</html>
