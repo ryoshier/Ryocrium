@@ -3,182 +3,516 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ryocrium v0.1</title>
+<title>Ryocrium Global</title>
+
 <style>
-body{margin:0;font-family:Arial;background:#0b0f1a;color:#fff}
-header{display:flex;justify-content:space-between;padding:15px;background:#111827}
-.tabbar{position:fixed;bottom:0;width:100%;display:flex;background:#111827}
-.tabbar button{flex:1;padding:12px;background:#1f2937;border:none;color:#fff}
-.tabbar button.active{background:#d4af37;color:#000}
-.section{display:none;padding:20px;padding-bottom:70px}
-.card{background:#111827;padding:15px;margin-bottom:15px;border-radius:10px}
-button.action{background:#d4af37;border:none;padding:6px 10px;border-radius:6px;margin-top:5px}
-select{padding:5px;margin-top:5px}
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#0b0f1a;
+  color:#fff;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  padding:15px;
+  background:#111827;
+  font-weight:bold;
+}
+
+.section{
+  display:none;
+  padding:20px;
+  padding-bottom:90px;
+}
+
+.card{
+  background:#111827;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:12px;
+}
+
+button{
+  background:#d4af37;
+  border:none;
+  padding:6px 10px;
+  border-radius:6px;
+  margin-top:5px;
+  cursor:pointer;
+}
+
+.tabbar{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  display:flex;
+  background:#111827;
+}
+
+.tabbar button{
+  flex:1;
+  padding:12px;
+  background:#1f2937;
+  border:none;
+  color:#fff;
+}
+
+.tabbar button.active{
+  background:#d4af37;
+  color:#000;
+}
+
+select{
+  padding:5px;
+  margin-top:5px;
+}
 </style>
 </head>
+
 <body>
 
 <header>
-<div>RYOCRIUM – İstanbul</div>
-<div>💰 $<span id="money">0</span> | 📈 XP: <span id="xp">0</span></div>
+<div>RYOCRIUM GLOBAL</div>
+<div>
+💰 $<span id="money">0</span> |
+🏢 Lvl <span id="level">1</span> |
+🌍 <span id="activeCity">-</span>
+</div>
 </header>
 
 <div id="dashboard" class="section"></div>
 <div id="agriculture" class="section"></div>
 <div id="industry" class="section"></div>
 <div id="market" class="section"></div>
+<div id="restaurant" class="section"></div>
+<div id="finance" class="section"></div>
+<div id="world" class="section"></div>
+<div id="stats" class="section"></div>
 
 <div class="tabbar">
-<button onclick="showTab('dashboard',this)" class="active">Ana</button>
-<button onclick="showTab('agriculture',this)">Tarım</button>
-<button onclick="showTab('industry',this)">Sanayi</button>
-<button onclick="showTab('market',this)">Market</button>
+<button onclick="tab('dashboard',this)" class="active">Ana</button>
+<button onclick="tab('agriculture',this)">Tarım</button>
+<button onclick="tab('industry',this)">Sanayi</button>
+<button onclick="tab('market',this)">Market</button>
+<button onclick="tab('restaurant',this)">Restoran</button>
+<button onclick="tab('finance',this)">Finans</button>
+<button onclick="tab('world',this)">Dünya</button>
+<button onclick="tab('stats',this)">İstatistik</button>
 </div>
 
 <script>
-var SAVE="ryocrium_v01";
+
+var SAVE_KEY="ryocrium_global_full_v1";
+
+function baseCity(demand,tax,wage){
+  return{
+    demand:demand,
+    tax:tax,
+    wage:wage,
+    policy:"balanced",
+    lastVisit:Date.now(),
+    sectors:{
+      agriculture:{
+        wheat:{level:1,stock:0},
+        beans:{level:1,stock:0},
+        corn:{level:1,stock:0}
+      },
+      industry:{
+        flour:{level:1,stock:0},
+        canned:{level:1,stock:0},
+        feed:{level:1,stock:0}
+      },
+      restaurant:{
+        capacity:1,
+        customers:0
+      }
+    }
+  }
+}
 
 var state={
-money:5000,
-xp:0,
-lastUpdate:Date.now(),
-pricePolicy:"balanced",
-city:{
-demand:1.0,
-tax:0.18
-},
-market:{
-basePrice:10,
-price:10,
-demand:1,
-supply:1
-},
-sectors:{
-agriculture:{
-wheat:{level:1,stock:0,baseProd:5},
-beans:{level:1,stock:0,baseProd:3}
-},
-industry:{
-flour:{level:1,stock:0,baseProd:4,requires:{wheat:2}},
-canned:{level:1,stock:0,baseProd:2,requires:{beans:2}}
-}
-}
+  money:20000,
+  xp:0,
+  level:1,
+  prestige:0,
+  loan:0,
+  activeCountry:"Turkey",
+  activeCity:"Istanbul",
+  lastUpdate:Date.now(),
+  stats:{
+    totalProduced:0,
+    totalSold:0
+  },
+  countries:{
+    Turkey:{
+      multiplier:1,
+      locked:false,
+      cities:{
+        Istanbul:baseCity(1.0,0.18,1.0),
+        Ankara:baseCity(0.9,0.15,0.9),
+        Izmir:baseCity(0.95,0.16,0.95)
+      }
+    },
+    Germany:{
+      multiplier:1.3,
+      locked:true,
+      cities:{
+        Berlin:baseCity(1.2,0.25,1.3),
+        Munich:baseCity(1.15,0.23,1.2)
+      }
+    },
+    USA:{
+      multiplier:1.5,
+      locked:true,
+      cities:{
+        NewYork:baseCity(1.5,0.15,1.5),
+        LosAngeles:baseCity(1.4,0.14,1.4)
+      }
+    }
+  }
 };
 
-function save(){localStorage.setItem(SAVE,JSON.stringify(state))}
-function load(){var s=localStorage.getItem(SAVE);if(s)state=JSON.parse(s)}
-
-function showTab(id,btn){
-document.querySelectorAll(".section").forEach(s=>s.style.display="none")
-document.getElementById(id).style.display="block"
-document.querySelectorAll(".tabbar button").forEach(b=>b.classList.remove("active"))
-btn.classList.add("active")
+function save(){
+  localStorage.setItem(SAVE_KEY,JSON.stringify(state));
 }
 
-function updateOffline(){
-var now=Date.now()
-var diff=(now-state.lastUpdate)/1000
-produce(diff)
-state.lastUpdate=now
+function load(){
+  var s=localStorage.getItem(SAVE_KEY);
+  if(s) state=JSON.parse(s);
 }
 
-function produce(mult=1){
-for(var k in state.sectors.agriculture){
-var f=state.sectors.agriculture[k]
-f.stock+=f.baseProd*mult
-state.xp+=0.1*mult
+function tab(id,btn){
+  document.querySelectorAll(".section").forEach(s=>s.style.display="none");
+  document.getElementById(id).style.display="block";
+  document.querySelectorAll(".tabbar button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
 }
 
-for(var k in state.sectors.industry){
-var f=state.sectors.industry[k]
-var canProduce=true
-for(var req in f.requires){
-if(state.sectors.agriculture[req].stock < f.requires[req]*mult){
-canProduce=false
-}
-}
-if(canProduce){
-for(var req in f.requires){
-state.sectors.agriculture[req].stock -= f.requires[req]*mult
-}
-f.stock+=f.baseProd*mult
-state.xp+=0.2*mult
-}
+function getActiveCity(){
+  return state.countries[state.activeCountry].cities[state.activeCity];
 }
 
-autoSell(mult)
-updatePrice()
+function getCountryMultiplier(){
+  return state.countries[state.activeCountry].multiplier;
 }
 
-function autoSell(mult){
-var sold=0
-for(var k in state.sectors.industry){
-var f=state.sectors.industry[k]
-var sellAmount=f.stock*0.1*mult
-f.stock-=sellAmount
-sold+=sellAmount
+function productionMultiplier(){
+  return 1 + (state.level*0.05) + (state.prestige*0.1);
 }
-var policyMultiplier=1
-if(state.pricePolicy=="cheap") policyMultiplier=0.8
-if(state.pricePolicy=="premium") policyMultiplier=1.3
+  
+// ===============================
+// PRODUCTION ENGINE
+// ===============================
 
-var income=sold*state.market.price*policyMultiplier
-var tax=income*state.city.tax
-state.money+=income-tax
-state.market.supply=sold
-state.market.demand=state.city.demand*policyMultiplier
+function produceAgriculture(city,seconds){
+  var mult = productionMultiplier();
+  var ag = city.sectors.agriculture;
+
+  ag.wheat.stock += 5 * ag.wheat.level * mult * seconds;
+  ag.beans.stock += 3 * ag.beans.level * mult * seconds;
+  ag.corn.stock  += 4 * ag.corn.level  * mult * seconds;
+
+  state.stats.totalProduced += seconds * 10;
 }
 
-function updatePrice(){
-var m=state.market
-var ratio=m.demand/(m.supply+1)
-m.price=m.basePrice*ratio
-if(m.price<2)m.price=2
-if(m.price>50)m.price=50
+function produceIndustry(city,seconds){
+  var mult = productionMultiplier();
+  var ag = city.sectors.agriculture;
+  var ind = city.sectors.industry;
+
+  var flourPossible = Math.min(
+    ag.wheat.stock / 2,
+    seconds * ind.flour.level
+  );
+
+  ag.wheat.stock -= flourPossible * 2;
+  ind.flour.stock += flourPossible * mult;
+
+  var cannedPossible = Math.min(
+    ag.beans.stock / 2,
+    seconds * ind.canned.level
+  );
+
+  ag.beans.stock -= cannedPossible * 2;
+  ind.canned.stock += cannedPossible * mult;
+
+  var feedPossible = Math.min(
+    ag.corn.stock / 2,
+    seconds * ind.feed.level
+  );
+
+  ag.corn.stock -= feedPossible * 2;
+  ind.feed.stock += feedPossible * mult;
 }
+
+// ===============================
+// MARKET + PRICE ENGINE
+// ===============================
+
+function calculatePrice(city){
+  var base = 10;
+  var demand = city.demand;
+  var supply =
+    city.sectors.industry.flour.stock +
+    city.sectors.industry.canned.stock +
+    city.sectors.industry.feed.stock;
+
+  var ratio = demand / (supply/100 + 1);
+
+  var policyMult = 1;
+  if(city.policy==="cheap") policyMult=0.8;
+  if(city.policy==="premium") policyMult=1.3;
+
+  var countryMult = getCountryMultiplier();
+
+  var price = base * ratio * policyMult * countryMult;
+
+  if(price<2) price=2;
+  if(price>100) price=100;
+
+  return price;
+}
+
+function autoSell(city,seconds){
+  var ind = city.sectors.industry;
+  var totalStock =
+    ind.flour.stock +
+    ind.canned.stock +
+    ind.feed.stock;
+
+  var sellAmount = totalStock * 0.05 * seconds;
+
+  ind.flour.stock *= 0.95;
+  ind.canned.stock *= 0.95;
+  ind.feed.stock  *= 0.95;
+
+  var price = calculatePrice(city);
+
+  var income = sellAmount * price;
+  var tax = income * city.tax;
+
+  state.money += income - tax;
+  state.stats.totalSold += sellAmount;
+  state.xp += sellAmount * 0.3;
+}
+
+// ===============================
+// RESTAURANT ENGINE
+// ===============================
+
+function runRestaurant(city,seconds){
+  var rest = city.sectors.restaurant;
+  var ind = city.sectors.industry;
+
+  var usable =
+    (ind.flour.stock + ind.canned.stock) * 0.02 * rest.capacity * seconds;
+
+  ind.flour.stock *= 0.98;
+  ind.canned.stock *= 0.98;
+
+  var revenue = usable * 25 * getCountryMultiplier();
+  state.money += revenue;
+  state.xp += usable * 0.5;
+}
+
+// ===============================
+// LEVEL SYSTEM
+// ===============================
+
+function checkLevelUp(){
+  var needed = state.level * 500;
+  if(state.xp >= needed){
+    state.level++;
+    state.xp=0;
+  }
+}
+
+// ===============================
+// COUNTRY UNLOCK
+// ===============================
+
+function checkUnlocks(){
+  if(state.money > 500000)
+    state.countries.Germany.locked=false;
+
+  if(state.money > 5000000)
+    state.countries.USA.locked=false;
+}
+
+// ===============================
+// FINANCE SYSTEM
+// ===============================
+
+function takeLoan(){
+  state.money += 10000;
+  state.loan += 10000;
+}
+
+function payLoan(){
+  if(state.money >= state.loan){
+    state.money -= state.loan;
+    state.loan=0;
+  }
+}
+
+function applyInterest(seconds){
+  if(state.loan>0){
+    state.loan *= (1 + 0.02 * seconds);
+  }
+}
+
+// ===============================
+// OFFLINE SYSTEM
+// ===============================
+
+function applyOffline(city){
+  var now = Date.now();
+  var diff = (now - city.lastVisit)/1000;
+  if(diff>0){
+    produceAgriculture(city,diff*0.7);
+    produceIndustry(city,diff*0.7);
+  }
+  city.lastVisit=now;
+}
+
+// ===============================
+// GLOBAL TICK
+// ===============================
+
+function gameTick(seconds){
+  var city = getActiveCity();
+
+  produceAgriculture(city,seconds);
+  produceIndustry(city,seconds);
+  autoSell(city,seconds);
+  runRestaurant(city,seconds);
+
+  applyInterest(seconds);
+  checkLevelUp();
+  checkUnlocks();
+  }
+  // ===============================
+// RENDER SYSTEM
+// ===============================
 
 function render(){
-document.getElementById("money").textContent=Math.floor(state.money)
-document.getElementById("xp").textContent=Math.floor(state.xp)
+  var city = getActiveCity();
 
-var dash=document.getElementById("dashboard")
-dash.innerHTML="<div class='card'>Fiyat: $"+state.market.price.toFixed(2)+"</div>"
+  document.getElementById("money").textContent = Math.floor(state.money);
+  document.getElementById("level").textContent = state.level;
+  document.getElementById("activeCity").textContent = state.activeCity;
 
-var ag=document.getElementById("agriculture")
-ag.innerHTML=""
-for(var k in state.sectors.agriculture){
-var f=state.sectors.agriculture[k]
-ag.innerHTML+="<div class='card'><b>"+k+"</b><br>Stok: "+Math.floor(f.stock)+"</div>"
+  // DASHBOARD
+  document.getElementById("dashboard").innerHTML =
+    "<div class='card'>XP: "+Math.floor(state.xp)+"</div>" +
+    "<div class='card'>Kredi: $"+Math.floor(state.loan)+"</div>";
+
+  // AGRICULTURE
+  var ag = city.sectors.agriculture;
+  document.getElementById("agriculture").innerHTML =
+    "<div class='card'>"+
+    "Buğday: "+Math.floor(ag.wheat.stock)+"<br>"+
+    "Fasulye: "+Math.floor(ag.beans.stock)+"<br>"+
+    "Mısır: "+Math.floor(ag.corn.stock)+"</div>";
+
+  // INDUSTRY
+  var ind = city.sectors.industry;
+  document.getElementById("industry").innerHTML =
+    "<div class='card'>"+
+    "Un: "+Math.floor(ind.flour.stock)+"<br>"+
+    "Konserve: "+Math.floor(ind.canned.stock)+"<br>"+
+    "Yem: "+Math.floor(ind.feed.stock)+"</div>";
+
+  // MARKET
+  document.getElementById("market").innerHTML =
+    "<div class='card'>Fiyat Politikası<br>"+
+    "<select onchange='changePolicy(this.value)'>"+
+    "<option value='cheap' "+(city.policy==='cheap'?'selected':'')+">Ucuz</option>"+
+    "<option value='balanced' "+(city.policy==='balanced'?'selected':'')+">Dengeli</option>"+
+    "<option value='premium' "+(city.policy==='premium'?'selected':'')+">Premium</option>"+
+    "</select></div>";
+
+  // RESTAURANT
+  document.getElementById("restaurant").innerHTML =
+    "<div class='card'>Kapasite: "+city.sectors.restaurant.capacity+
+    "<br><button onclick='upgradeRestaurant()'>Kapasite Arttır ($5000)</button></div>";
+
+  // FINANCE
+  document.getElementById("finance").innerHTML =
+    "<div class='card'>"+
+    "<button onclick='takeLoan()'>10K Kredi</button><br>"+
+    "<button onclick='payLoan()'>Borcu Öde</button></div>";
+
+  // WORLD
+  var worldHTML="";
+  for(var c in state.countries){
+    var country=state.countries[c];
+    if(country.locked) continue;
+    worldHTML+="<div class='card'><b>"+c+"</b><br>";
+    for(var cityName in country.cities){
+      worldHTML+="<button onclick='switchCity(\""+c+"\",\""+cityName+"\")'>"+cityName+"</button><br>";
+    }
+    worldHTML+="</div>";
+  }
+  document.getElementById("world").innerHTML=worldHTML;
+
+  // STATS
+  document.getElementById("stats").innerHTML =
+    "<div class='card'>Toplam Üretim: "+Math.floor(state.stats.totalProduced)+"</div>"+
+    "<div class='card'>Toplam Satış: "+Math.floor(state.stats.totalSold)+"</div>";
 }
 
-var ind=document.getElementById("industry")
-ind.innerHTML=""
-for(var k in state.sectors.industry){
-var f=state.sectors.industry[k]
-ind.innerHTML+="<div class='card'><b>"+k+"</b><br>Stok: "+Math.floor(f.stock)+"</div>"
-}
-
-var market=document.getElementById("market")
-market.innerHTML="<div class='card'>Satış Politikası<br><select onchange='changePolicy(this.value)'><option value='cheap'>Ucuz</option><option value='balanced' selected>Dengeli</option><option value='premium'>Premium</option></select></div>"
-}
+// ===============================
+// UI ACTIONS
+// ===============================
 
 function changePolicy(val){
-state.pricePolicy=val
-save()
+  getActiveCity().policy = val;
+  save();
 }
 
-function tick(){
-produce(1)
-render()
-save()
+function upgradeRestaurant(){
+  if(state.money>=5000){
+    state.money-=5000;
+    getActiveCity().sectors.restaurant.capacity++;
+  }
 }
 
-load()
-updateOffline()
-render()
-showTab("dashboard",document.querySelector(".tabbar button"))
-setInterval(tick,1000)
-</script>
+// ===============================
+// CITY SWITCH
+// ===============================
 
+function switchCity(country,cityName){
+  var currentCity = getActiveCity();
+  currentCity.lastVisit = Date.now();
+
+  state.activeCountry = country;
+  state.activeCity = cityName;
+
+  applyOffline(getActiveCity());
+
+  render();
+  save();
+}
+
+// ===============================
+// GAME LOOP
+// ===============================
+
+function mainLoop(){
+  gameTick(1);
+  render();
+  save();
+}
+
+load();
+applyOffline(getActiveCity());
+render();
+tab("dashboard",document.querySelector(".tabbar button"));
+
+setInterval(mainLoop,1000);
+  </script>
 </body>
 </html>
