@@ -14,25 +14,17 @@ body {
 }
 
 header {
-    background: linear-gradient(90deg, #111, #1a1a1a);
+    background: #111;
     padding: 20px 40px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
     border-bottom: 2px solid #d4af37;
 }
 
 .logo {
     font-size: 22px;
     font-weight: bold;
-    letter-spacing: 2px;
     color: #d4af37;
-}
-
-.top-stats {
-    display: flex;
-    gap: 30px;
-    font-size: 14px;
 }
 
 .container {
@@ -46,39 +38,16 @@ header {
     background: #141a22;
     border-radius: 14px;
     padding: 25px;
-    box-shadow: 0 0 25px rgba(0,0,0,0.6);
     border: 1px solid #1f2937;
-}
-
-.card h2 {
-    margin-top: 0;
-    color: #d4af37;
-}
-
-.stat {
-    margin: 8px 0;
-    font-size: 14px;
-}
-
-.big-value {
-    font-size: 26px;
-    font-weight: bold;
-    margin: 10px 0;
 }
 
 button {
     background: #d4af37;
     border: none;
     padding: 10px 18px;
-    color: black;
     font-weight: bold;
     border-radius: 8px;
     cursor: pointer;
-    transition: 0.2s;
-}
-
-button:hover {
-    transform: scale(1.05);
 }
 
 .progress-bar {
@@ -92,7 +61,7 @@ button:hover {
 .progress-fill {
     height: 100%;
     background: #d4af37;
-    width: 40%;
+    width: 0%;
 }
 </style>
 </head>
@@ -101,9 +70,9 @@ button:hover {
 
 <header>
     <div class="logo">RYOCRIUM HOLDINGS</div>
-    <div class="top-stats">
-        <div>💰 Nakit: $<span id="money">5000</span></div>
-        <div>🏢 Şirket Değeri: $<span id="companyValue">15000</span></div>
+    <div>
+        💰 $<span id="money">0</span> |
+        🏢 Değer: $<span id="companyValue">0</span>
     </div>
 </header>
 
@@ -111,9 +80,9 @@ button:hover {
 
     <div class="card">
         <h2>🌾 Kuru Fasulye Fabrikası</h2>
-        <div class="stat">Seviye: <span id="level">1</span></div>
-        <div class="stat">Üretim Hızı: <span id="rate">10</span> / dk</div>
-        <div class="stat">Depo: <span id="stock">0</span> / 1000</div>
+        <p>Seviye: <span id="level">1</span></p>
+        <p>Üretim: <span id="rate">10</span> / dk</p>
+        <p>Depo: <span id="stock">0</span> / 1000</p>
 
         <div class="progress-bar">
             <div class="progress-fill" id="progress"></div>
@@ -125,22 +94,30 @@ button:hover {
 
     <div class="card">
         <h2>📦 Piyasa</h2>
-        <div class="big-value">$<span id="price">20</span></div>
-        <div class="stat">Fiyat dalgalanıyor...</div>
+        <h1>$<span id="price">20</span></h1>
         <button onclick="sell()">Tüm Stoğu Sat</button>
     </div>
 
 </div>
 
 <script>
-let money = 5000;
-let stock = 0;
-let level = 1;
+document.addEventListener("DOMContentLoaded", function(){
+
+let money = parseFloat(localStorage.getItem("money")) || 5000;
+let stock = parseFloat(localStorage.getItem("stock")) || 0;
+let level = parseInt(localStorage.getItem("level")) || 1;
+let price = parseFloat(localStorage.getItem("price")) || 20;
 let capacity = 1000;
-let price = 20;
 
 const productionRates = {1:10,2:25,3:60,4:120,5:250};
 const upgradeCosts = {1:1000,2:5000,3:20000,4:75000};
+
+function save(){
+    localStorage.setItem("money", money);
+    localStorage.setItem("stock", stock);
+    localStorage.setItem("level", level);
+    localStorage.setItem("price", price);
+}
 
 function updateUI(){
     document.getElementById("money").innerText = Math.floor(money);
@@ -148,41 +125,48 @@ function updateUI(){
     document.getElementById("level").innerText = level;
     document.getElementById("rate").innerText = productionRates[level];
     document.getElementById("price").innerText = price;
-    document.getElementById("companyValue").innerText = Math.floor(money + stock*price + level*2000);
+    document.getElementById("companyValue").innerText =
+        Math.floor(money + stock*price + level*2000);
 
-    let percent = (stock/capacity)*100;
-    document.getElementById("progress").style.width = percent+"%";
+    document.getElementById("progress").style.width =
+        (stock/capacity)*100 + "%";
 }
 
-function upgrade(){
+window.upgrade = function(){
     if(upgradeCosts[level] && money >= upgradeCosts[level]){
         money -= upgradeCosts[level];
         level++;
+        save();
         updateUI();
     }
 }
 
-function sell(){
+window.sell = function(){
     money += stock * price;
     stock = 0;
+    save();
     updateUI();
 }
 
 setInterval(()=>{
     if(stock < capacity){
         stock += productionRates[level]/60;
+        save();
+        updateUI();
     }
-    updateUI();
 },1000);
 
 setInterval(()=>{
     price += Math.floor(Math.random()*5 - 2);
     if(price < 10) price = 10;
     if(price > 45) price = 45;
+    save();
     updateUI();
 },5000);
 
 updateUI();
+
+});
 </script>
 
 </body>
