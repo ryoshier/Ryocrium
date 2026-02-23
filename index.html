@@ -12,9 +12,7 @@
       padding: 20px;
     }
 
-    h1 {
-      color: #38bdf8;
-    }
+    h1 { color: #38bdf8; }
 
     .box {
       background: #1e293b;
@@ -25,76 +23,92 @@
 
     button {
       padding: 12px 20px;
-      margin: 10px;
-      font-size: 16px;
+      margin: 8px;
+      font-size: 15px;
       border: none;
       border-radius: 8px;
       background: #22c55e;
       color: white;
       cursor: pointer;
     }
+
+    .danger {
+      background: #ef4444;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Ryocrium</h1>
+<h1>Ryocrium</h1>
 
-  <div class="box">
-    <h2>Paran: <span id="money">0</span> ₺</h2>
+<div class="box">
+  <h2>Paran: <span id="money">0</span> ₺</h2>
+  <h3>Stok (Kuru Fasulye): <span id="stock">0</span></h3>
 
-    <div id="companySection">
-      <button id="createCompany">Şirket Kur (50.000₺)</button>
-    </div>
-
-    <div id="gameSection" style="display:none;">
-      <p>Şirketin aktif!</p>
-      <button id="earnBtn">Üretim Yap (+10.000₺)</button>
-    </div>
+  <div id="companySection">
+    <button id="createCompany">Şirket Kur (50.000₺)</button>
   </div>
 
-  <script>
-  document.addEventListener("DOMContentLoaded", function() {
+  <div id="gameSection" style="display:none;">
+    <button id="produce">Kuru Fasulye Üret (-5.000₺)</button>
+    <button id="sell" class="danger">Kuru Fasulye Sat (+8.000₺)</button>
+  </div>
+</div>
 
-    let money = localStorage.getItem("money");
-    let company = localStorage.getItem("company");
+<script>
+document.addEventListener("DOMContentLoaded", function() {
 
-    if (!money) {
-      money = 100000;
-      localStorage.setItem("money", money);
-    }
+  let money = parseInt(localStorage.getItem("money")) || 100000;
+  let company = localStorage.getItem("company");
+  let stock = parseInt(localStorage.getItem("stock")) || 0;
 
-    money = parseInt(money);
-    document.getElementById("money").innerText = money;
+  updateUI();
 
-    if (company === "true") {
+  if (company === "true") activateCompany();
+
+  document.getElementById("createCompany").addEventListener("click", function() {
+    if (money >= 50000) {
+      money -= 50000;
+      localStorage.setItem("company", "true");
+      save();
       activateCompany();
-    }
-
-    document.getElementById("createCompany").addEventListener("click", function() {
-      if (money >= 50000) {
-        money -= 50000;
-        localStorage.setItem("money", money);
-        localStorage.setItem("company", "true");
-        document.getElementById("money").innerText = money;
-        activateCompany();
-      } else {
-        alert("Yetersiz para!");
-      }
-    });
-
-    function activateCompany() {
-      document.getElementById("companySection").style.display = "none";
-      document.getElementById("gameSection").style.display = "block";
-    }
-
-    document.getElementById("earnBtn").addEventListener("click", function() {
-      money += 10000;
-      document.getElementById("money").innerText = money;
-      localStorage.setItem("money", money);
-    });
-
+    } else alert("Yetersiz para!");
   });
-  </script>
+
+  document.getElementById("produce").addEventListener("click", function() {
+    if (money >= 5000) {
+      money -= 5000;
+      stock += 1;
+      save();
+    } else alert("Üretim için para yok!");
+  });
+
+  document.getElementById("sell").addEventListener("click", function() {
+    if (stock > 0) {
+      stock -= 1;
+      money += 8000;
+      save();
+    } else alert("Satacak ürün yok!");
+  });
+
+  function activateCompany() {
+    document.getElementById("companySection").style.display = "none";
+    document.getElementById("gameSection").style.display = "block";
+  }
+
+  function updateUI() {
+    document.getElementById("money").innerText = money;
+    document.getElementById("stock").innerText = stock;
+  }
+
+  function save() {
+    localStorage.setItem("money", money);
+    localStorage.setItem("stock", stock);
+    updateUI();
+  }
+
+});
+</script>
 
 </body>
 </html>
