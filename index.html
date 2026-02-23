@@ -3,176 +3,226 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ryocrium</title>
+<title>Ryocrium Holdings</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: #0b0f14;
-    color: #e5e5e5;
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#0b0f1a;
+  color:#fff;
 }
-
-header {
-    background: #111;
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 2px solid #d4af37;
+header{
+  display:flex;
+  justify-content:space-between;
+  padding:15px 20px;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+  font-weight:bold;
 }
-
-.logo {
-    font-size: 22px;
-    font-weight: bold;
-    color: #d4af37;
+.container{
+  display:flex;
+  flex-wrap:wrap;
+  gap:20px;
+  padding:20px;
 }
-
-.container {
-    padding: 40px;
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 30px;
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:15px;
+  flex:1;
+  min-width:300px;
+  box-shadow:0 0 20px rgba(0,0,0,0.3);
 }
-
-.card {
-    background: #141a22;
-    border-radius: 14px;
-    padding: 25px;
-    border: 1px solid #1f2937;
+button{
+  background:#d4af37;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
 }
-
-button {
-    background: #d4af37;
-    border: none;
-    padding: 10px 18px;
-    font-weight: bold;
-    border-radius: 8px;
-    cursor: pointer;
+button:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
 }
-
-.progress-bar {
-    height: 8px;
-    background: #222;
-    border-radius: 6px;
-    overflow: hidden;
-    margin-top: 10px;
+.progress{
+  height:8px;
+  background:#222;
+  border-radius:10px;
+  margin:10px 0;
+  overflow:hidden;
 }
-
-.progress-fill {
-    height: 100%;
-    background: #d4af37;
-    width: 0%;
+.progress-bar{
+  height:100%;
+  background:#d4af37;
+  width:0%;
+}
+.next{
+  margin-top:10px;
+  padding:10px;
+  background:rgba(255,255,255,0.05);
+  border-radius:10px;
+  font-size:13px;
+}
+.market{
+  font-size:22px;
+  margin-bottom:10px;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-    <div class="logo">RYOCRIUM HOLDINGS</div>
-    <div>
-        💰 $<span id="money">0</span> |
-        🏢 Değer: $<span id="companyValue">0</span>
-    </div>
+<div>RYOCRIUM HOLDINGS</div>
+<div>
+💰 $<span id="money">0</span> |
+🏢 Değer: $<span id="value">0</span>
+</div>
 </header>
 
 <div class="container">
 
-    <div class="card">
-        <h2>🌾 Kuru Fasulye Fabrikası</h2>
-        <p>Seviye: <span id="level">1</span></p>
-        <p>Üretim: <span id="rate">10</span> / dk</p>
-        <p>Depo: <span id="stock">0</span> / 1000</p>
+<div id="factories"></div>
 
-        <div class="progress-bar">
-            <div class="progress-fill" id="progress"></div>
-        </div>
-
-        <br>
-        <button onclick="upgrade()">Fabrikayı Yükselt</button>
-        <div style="margin-top:12px;padding:10px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.03);font-size:13px;">
-  <div>Sonraki Seviye (Lv <span id="nextLevel">0</span>)</div>
-  <div>Üretim Artışı: <b id="nextProd">+0</b> / dk</div>
-  <div>Depo Artışı: <b id="nextCap">+0</b></div>
-  <div>Maliyet: <b>$<span id="nextCost">0</span></b></div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>📦 Piyasa</h2>
-        <h1>$<span id="price">20</span></h1>
-        <button onclick="sell()">Tüm Stoğu Sat</button>
-    </div>
+<div class="card">
+<div class="market">Piyasa: $<span id="price">10</span></div>
+<button onclick="sellAll()">Tüm Stoğu Sat</button>
+</div>
 
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function(){
+const SAVE_KEY="ryocrium_save";
 
-let money = parseFloat(localStorage.getItem("money")) || 5000;
-let stock = parseFloat(localStorage.getItem("stock")) || 0;
-let level = parseInt(localStorage.getItem("level")) || 1;
-let price = parseFloat(localStorage.getItem("price")) || 20;
-let capacity = 1000;
-
-const productionRates = {1:10,2:25,3:60,4:120,5:250};
-const upgradeCosts = {1:1000,2:5000,3:20000,4:75000};
+let state={
+  money:1000,
+  price:10,
+  lastUpdate:Date.now(),
+  factories:[
+    {name:"Kuru Fasulye", level:1, stock:0, baseProd:5, baseCap:100, baseCost:100, unlocked:true},
+    {name:"Mısır", level:1, stock:0, baseProd:12, baseCap:200, baseCost:1000, unlocked:false},
+    {name:"Çelik", level:1, stock:0, baseProd:30, baseCap:500, baseCost:10000, unlocked:false}
+  ]
+};
 
 function save(){
-    localStorage.setItem("money", money);
-    localStorage.setItem("stock", stock);
-    localStorage.setItem("level", level);
-    localStorage.setItem("price", price);
+  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
 }
 
-function updateUI(){
-    document.getElementById("money").innerText = Math.floor(money);
-    document.getElementById("stock").innerText = Math.floor(stock);
-    document.getElementById("level").innerText = level;
-    document.getElementById("rate").innerText = productionRates[level];
-    document.getElementById("price").innerText = price;
-    document.getElementById("companyValue").innerText =
-        Math.floor(money + stock*price + level*2000);
-
-    document.getElementById("progress").style.width =
-        (stock/capacity)*100 + "%";
+function load(){
+  let s=localStorage.getItem(SAVE_KEY);
+  if(s){
+    state=JSON.parse(s);
+  }
 }
 
-window.upgrade = function(){
-    if(upgradeCosts[level] && money >= upgradeCosts[level]){
-        money -= upgradeCosts[level];
-        level++;
-        save();
-        updateUI();
+function productionPerSec(f){
+  return (f.baseProd*Math.pow(1.15,f.level-1))/60;
+}
+function capacity(f){
+  return f.baseCap*Math.pow(1.10,f.level-1);
+}
+function upgradeCost(f){
+  return f.baseCost*Math.pow(1.5,f.level-1);
+}
+
+function updateOffline(){
+  let now=Date.now();
+  let diff=(now-state.lastUpdate)/1000;
+  state.factories.forEach(f=>{
+    if(!f.unlocked) return;
+    let gain=productionPerSec(f)*diff;
+    f.stock=Math.min(f.stock+gain, capacity(f));
+  });
+  state.lastUpdate=now;
+}
+
+function render(){
+  document.getElementById("money").textContent=Math.floor(state.money);
+  document.getElementById("price").textContent=state.price.toFixed(2);
+
+  let totalValue=state.money;
+  state.factories.forEach(f=>{
+    if(f.unlocked) totalValue+=f.stock*state.price;
+  });
+  document.getElementById("value").textContent=Math.floor(totalValue);
+
+  let container=document.getElementById("factories");
+  container.innerHTML="";
+
+  state.factories.forEach((f,i)=>{
+    if(!f.unlocked){
+      if(state.money>=f.baseCost*2){
+        f.unlocked=true;
+      }else{
+        return;
+      }
     }
+
+    let card=document.createElement("div");
+    card.className="card";
+
+    let prod=productionPerSec(f)*60;
+    let cap=capacity(f);
+    let cost=upgradeCost(f);
+
+    card.innerHTML=`
+      <h3>${f.name}</h3>
+      Seviye: ${f.level}<br>
+      Üretim: ${prod.toFixed(1)} / dk<br>
+      Depo: ${Math.floor(f.stock)} / ${Math.floor(cap)}
+      <div class="progress">
+        <div class="progress-bar" style="width:${(f.stock/cap)*100}%"></div>
+      </div>
+      <button onclick="upgrade(${i})">Yükselt ($${Math.floor(cost)})</button>
+      <div class="next">
+        Sonraki Seviye (${f.level+1})<br>
+        Üretim Artışı: +${(f.baseProd*Math.pow(1.15,f.level)-prod).toFixed(1)} / dk<br>
+        Depo Artışı: +${(f.baseCap*Math.pow(1.10,f.level)-cap).toFixed(0)}
+      </div>
+    `;
+    container.appendChild(card);
+  });
 }
 
-window.sell = function(){
-    money += stock * price;
-    stock = 0;
+function upgrade(i){
+  let f=state.factories[i];
+  let cost=upgradeCost(f);
+  if(state.money>=cost){
+    state.money-=cost;
+    f.level++;
     save();
-    updateUI();
+    render();
+  }
 }
 
-setInterval(()=>{
-    if(stock < capacity){
-        stock += productionRates[level]/60;
-        save();
-        updateUI();
+function sellAll(){
+  state.factories.forEach(f=>{
+    if(f.unlocked){
+      state.money+=f.stock*state.price;
+      f.stock=0;
     }
-},1000);
+  });
+  save();
+  render();
+}
 
-setInterval(()=>{
-    price += Math.floor(Math.random()*5 - 2);
-    if(price < 10) price = 10;
-    if(price > 45) price = 45;
-    save();
-    updateUI();
-},5000);
+function tick(){
+  state.factories.forEach(f=>{
+    if(!f.unlocked) return;
+    f.stock=Math.min(f.stock+productionPerSec(f), capacity(f));
+  });
+  if(Math.random()<0.02){
+    state.price=8+Math.random()*10;
+  }
+  render();
+  save();
+}
 
-updateUI();
-
-});
+load();
+updateOffline();
+render();
+setInterval(tick,1000);
 </script>
 
 </body>
