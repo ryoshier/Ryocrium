@@ -3,226 +3,181 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ryocrium Holdings</title>
-
+<title>Ryocrium v0.1</title>
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#0b0f1a;
-  color:#fff;
-}
-header{
-  display:flex;
-  justify-content:space-between;
-  padding:15px 20px;
-  border-bottom:1px solid rgba(255,255,255,0.1);
-  font-weight:bold;
-}
-.container{
-  display:flex;
-  flex-wrap:wrap;
-  gap:20px;
-  padding:20px;
-}
-.card{
-  background:#111827;
-  padding:20px;
-  border-radius:15px;
-  flex:1;
-  min-width:300px;
-  box-shadow:0 0 20px rgba(0,0,0,0.3);
-}
-button{
-  background:#d4af37;
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
-}
-button:disabled{
-  opacity:0.4;
-  cursor:not-allowed;
-}
-.progress{
-  height:8px;
-  background:#222;
-  border-radius:10px;
-  margin:10px 0;
-  overflow:hidden;
-}
-.progress-bar{
-  height:100%;
-  background:#d4af37;
-  width:0%;
-}
-.next{
-  margin-top:10px;
-  padding:10px;
-  background:rgba(255,255,255,0.05);
-  border-radius:10px;
-  font-size:13px;
-}
-.market{
-  font-size:22px;
-  margin-bottom:10px;
-}
+body{margin:0;font-family:Arial;background:#0b0f1a;color:#fff}
+header{display:flex;justify-content:space-between;padding:15px;background:#111827}
+.tabbar{position:fixed;bottom:0;width:100%;display:flex;background:#111827}
+.tabbar button{flex:1;padding:12px;background:#1f2937;border:none;color:#fff}
+.tabbar button.active{background:#d4af37;color:#000}
+.section{display:none;padding:20px;padding-bottom:70px}
+.card{background:#111827;padding:15px;margin-bottom:15px;border-radius:10px}
+button.action{background:#d4af37;border:none;padding:6px 10px;border-radius:6px;margin-top:5px}
+select{padding:5px;margin-top:5px}
 </style>
 </head>
 <body>
 
 <header>
-<div>RYOCRIUM HOLDINGS</div>
-<div>
-💰 $<span id="money">0</span> |
-🏢 Değer: $<span id="value">0</span>
-</div>
+<div>RYOCRIUM – İstanbul</div>
+<div>💰 $<span id="money">0</span> | 📈 XP: <span id="xp">0</span></div>
 </header>
 
-<div class="container">
+<div id="dashboard" class="section"></div>
+<div id="agriculture" class="section"></div>
+<div id="industry" class="section"></div>
+<div id="market" class="section"></div>
 
-<div id="factories"></div>
-
-<div class="card">
-<div class="market">Piyasa: $<span id="price">10</span></div>
-<button onclick="sellAll()">Tüm Stoğu Sat</button>
-</div>
-
+<div class="tabbar">
+<button onclick="showTab('dashboard',this)" class="active">Ana</button>
+<button onclick="showTab('agriculture',this)">Tarım</button>
+<button onclick="showTab('industry',this)">Sanayi</button>
+<button onclick="showTab('market',this)">Market</button>
 </div>
 
 <script>
-const SAVE_KEY="ryocrium_save";
+var SAVE="ryocrium_v01";
 
-let state={
-  money:1000,
-  price:10,
-  lastUpdate:Date.now(),
-  factories:[
-    {name:"Kuru Fasulye", level:1, stock:0, baseProd:5, baseCap:100, baseCost:100, unlocked:true},
-    {name:"Mısır", level:1, stock:0, baseProd:12, baseCap:200, baseCost:1000, unlocked:false},
-    {name:"Çelik", level:1, stock:0, baseProd:30, baseCap:500, baseCost:10000, unlocked:false}
-  ]
+var state={
+money:5000,
+xp:0,
+lastUpdate:Date.now(),
+pricePolicy:"balanced",
+city:{
+demand:1.0,
+tax:0.18
+},
+market:{
+basePrice:10,
+price:10,
+demand:1,
+supply:1
+},
+sectors:{
+agriculture:{
+wheat:{level:1,stock:0,baseProd:5},
+beans:{level:1,stock:0,baseProd:3}
+},
+industry:{
+flour:{level:1,stock:0,baseProd:4,requires:{wheat:2}},
+canned:{level:1,stock:0,baseProd:2,requires:{beans:2}}
+}
+}
 };
 
-function save(){
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-}
+function save(){localStorage.setItem(SAVE,JSON.stringify(state))}
+function load(){var s=localStorage.getItem(SAVE);if(s)state=JSON.parse(s)}
 
-function load(){
-  let s=localStorage.getItem(SAVE_KEY);
-  if(s){
-    state=JSON.parse(s);
-  }
-}
-
-function productionPerSec(f){
-  return (f.baseProd*Math.pow(1.15,f.level-1))/60;
-}
-function capacity(f){
-  return f.baseCap*Math.pow(1.10,f.level-1);
-}
-function upgradeCost(f){
-  return f.baseCost*Math.pow(1.5,f.level-1);
+function showTab(id,btn){
+document.querySelectorAll(".section").forEach(s=>s.style.display="none")
+document.getElementById(id).style.display="block"
+document.querySelectorAll(".tabbar button").forEach(b=>b.classList.remove("active"))
+btn.classList.add("active")
 }
 
 function updateOffline(){
-  let now=Date.now();
-  let diff=(now-state.lastUpdate)/1000;
-  state.factories.forEach(f=>{
-    if(!f.unlocked) return;
-    let gain=productionPerSec(f)*diff;
-    f.stock=Math.min(f.stock+gain, capacity(f));
-  });
-  state.lastUpdate=now;
+var now=Date.now()
+var diff=(now-state.lastUpdate)/1000
+produce(diff)
+state.lastUpdate=now
+}
+
+function produce(mult=1){
+for(var k in state.sectors.agriculture){
+var f=state.sectors.agriculture[k]
+f.stock+=f.baseProd*mult
+state.xp+=0.1*mult
+}
+
+for(var k in state.sectors.industry){
+var f=state.sectors.industry[k]
+var canProduce=true
+for(var req in f.requires){
+if(state.sectors.agriculture[req].stock < f.requires[req]*mult){
+canProduce=false
+}
+}
+if(canProduce){
+for(var req in f.requires){
+state.sectors.agriculture[req].stock -= f.requires[req]*mult
+}
+f.stock+=f.baseProd*mult
+state.xp+=0.2*mult
+}
+}
+
+autoSell(mult)
+updatePrice()
+}
+
+function autoSell(mult){
+var sold=0
+for(var k in state.sectors.industry){
+var f=state.sectors.industry[k]
+var sellAmount=f.stock*0.1*mult
+f.stock-=sellAmount
+sold+=sellAmount
+}
+var policyMultiplier=1
+if(state.pricePolicy=="cheap") policyMultiplier=0.8
+if(state.pricePolicy=="premium") policyMultiplier=1.3
+
+var income=sold*state.market.price*policyMultiplier
+var tax=income*state.city.tax
+state.money+=income-tax
+state.market.supply=sold
+state.market.demand=state.city.demand*policyMultiplier
+}
+
+function updatePrice(){
+var m=state.market
+var ratio=m.demand/(m.supply+1)
+m.price=m.basePrice*ratio
+if(m.price<2)m.price=2
+if(m.price>50)m.price=50
 }
 
 function render(){
-  document.getElementById("money").textContent=Math.floor(state.money);
-  document.getElementById("price").textContent=state.price.toFixed(2);
+document.getElementById("money").textContent=Math.floor(state.money)
+document.getElementById("xp").textContent=Math.floor(state.xp)
 
-  let totalValue=state.money;
-  state.factories.forEach(f=>{
-    if(f.unlocked) totalValue+=f.stock*state.price;
-  });
-  document.getElementById("value").textContent=Math.floor(totalValue);
+var dash=document.getElementById("dashboard")
+dash.innerHTML="<div class='card'>Fiyat: $"+state.market.price.toFixed(2)+"</div>"
 
-  let container=document.getElementById("factories");
-  container.innerHTML="";
-
-  state.factories.forEach((f,i)=>{
-    if(!f.unlocked){
-      if(state.money>=f.baseCost*2){
-        f.unlocked=true;
-      }else{
-        return;
-      }
-    }
-
-    let card=document.createElement("div");
-    card.className="card";
-
-    let prod=productionPerSec(f)*60;
-    let cap=capacity(f);
-    let cost=upgradeCost(f);
-
-    card.innerHTML=`
-      <h3>${f.name}</h3>
-      Seviye: ${f.level}<br>
-      Üretim: ${prod.toFixed(1)} / dk<br>
-      Depo: ${Math.floor(f.stock)} / ${Math.floor(cap)}
-      <div class="progress">
-        <div class="progress-bar" style="width:${(f.stock/cap)*100}%"></div>
-      </div>
-      <button onclick="upgrade(${i})">Yükselt ($${Math.floor(cost)})</button>
-      <div class="next">
-        Sonraki Seviye (${f.level+1})<br>
-        Üretim Artışı: +${(f.baseProd*Math.pow(1.15,f.level)-prod).toFixed(1)} / dk<br>
-        Depo Artışı: +${(f.baseCap*Math.pow(1.10,f.level)-cap).toFixed(0)}
-      </div>
-    `;
-    container.appendChild(card);
-  });
+var ag=document.getElementById("agriculture")
+ag.innerHTML=""
+for(var k in state.sectors.agriculture){
+var f=state.sectors.agriculture[k]
+ag.innerHTML+="<div class='card'><b>"+k+"</b><br>Stok: "+Math.floor(f.stock)+"</div>"
 }
 
-function upgrade(i){
-  let f=state.factories[i];
-  let cost=upgradeCost(f);
-  if(state.money>=cost){
-    state.money-=cost;
-    f.level++;
-    save();
-    render();
-  }
+var ind=document.getElementById("industry")
+ind.innerHTML=""
+for(var k in state.sectors.industry){
+var f=state.sectors.industry[k]
+ind.innerHTML+="<div class='card'><b>"+k+"</b><br>Stok: "+Math.floor(f.stock)+"</div>"
 }
 
-function sellAll(){
-  state.factories.forEach(f=>{
-    if(f.unlocked){
-      state.money+=f.stock*state.price;
-      f.stock=0;
-    }
-  });
-  save();
-  render();
+var market=document.getElementById("market")
+market.innerHTML="<div class='card'>Satış Politikası<br><select onchange='changePolicy(this.value)'><option value='cheap'>Ucuz</option><option value='balanced' selected>Dengeli</option><option value='premium'>Premium</option></select></div>"
+}
+
+function changePolicy(val){
+state.pricePolicy=val
+save()
 }
 
 function tick(){
-  state.factories.forEach(f=>{
-    if(!f.unlocked) return;
-    f.stock=Math.min(f.stock+productionPerSec(f), capacity(f));
-  });
-  if(Math.random()<0.02){
-    state.price=8+Math.random()*10;
-  }
-  render();
-  save();
+produce(1)
+render()
+save()
 }
 
-load();
-updateOffline();
-render();
-setInterval(tick,1000);
+load()
+updateOffline()
+render()
+showTab("dashboard",document.querySelector(".tabbar button"))
+setInterval(tick,1000)
 </script>
 
 </body>
